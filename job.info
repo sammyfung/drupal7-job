@@ -1,0 +1,7 @@
+; $Id$
+name = Job Board
+description = job board module
+core = 7.x
+dependencies[] = taxonomy
+package = "Job Board"
+configure = admin/config/content/job
