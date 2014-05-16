@@ -15,12 +15,11 @@ function job_schema() {
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE),
-      'vid' => array(
-        'description' => t('The current {node_revisions}.vid version identifier.'),
-        'type' => 'int',
-        'unsigned' => TRUE,
+      'description' => array(
+        'description' => t('Description of Company.'),
+        'type' => 'text',
         'not null' => TRUE,
-        'default' => 0), 
+        'size' => 'big'),
       'phone' => array(
         'description' => t('Phone Number of Company.'),
         'type' => 'varchar',
@@ -56,9 +55,6 @@ function job_schema() {
       'phone' => array('phone'),
       'fax' => array('fax'),
       ),
-    'unique keys' => array(
-      'vid' => array('vid')
-      ),
     'primary key' => array('nid'),
   );  
   $schema['job'] = array(
@@ -69,18 +65,12 @@ function job_schema() {
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE),
-      'vid' => array(
-        'description' => t('The current {node_revisions}.vid version identifier.'),
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0),
       'company' => array(
-        'description' => t('Company Name.'),
+        'description' => t('Company ID.'),
         'type' => 'int',
         'unsigned' => TRUE),        
-      'application' => array(
-        'description' => t('Job Application.'),
+      'requirement' => array(
+        'description' => t('Job Requirement.'),
         'type' => 'text',
         'not null' => TRUE,
         'size' => 'big'),
@@ -89,17 +79,14 @@ function job_schema() {
         'type' => 'text',
         'not null' => TRUE,
         'size' => 'big'),
-      'duedate' => array(
-        'description' => t('The Unix timestamp when the job ad is due dated.'),
-        'type' => 'int',
+      'application' => array(
+        'description' => t('Job Application.'),
+        'type' => 'text',
         'not null' => TRUE,
-        'default' => 0),
+        'size' => 'big'),
       ),
     'indexes' => array(
-      'duedate' => array('duedate'),
-      ),
-    'unique keys' => array(
-      'vid' => array('vid')
+      'company' => array('company'),
       ),
     'primary key' => array('nid'),
   );  
@@ -234,6 +221,6 @@ function job_enable() {
   // Ensure the forum node type is available.
   node_types_rebuild();
   $types = node_type_get_types();
-  node_add_body_field($types['job']);  
+  //node_add_body_field($types['job']);  
 }
 

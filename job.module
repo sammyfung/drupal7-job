@@ -181,8 +181,6 @@ function job_node_info() {
       'description' => "This is a basic company information node type with a few fields.",
       'has_title' => TRUE,
       'title_label' => t('Company Name'),
-      'has_body' => TRUE,
-      'body_label' => t('Company Description')
     ),
     'job' => array(
       'name' => t('Job'),
@@ -190,8 +188,6 @@ function job_node_info() {
       'description' => "This is a job post node type with a few fields.",
       'has_title' => TRUE,
       'title_label' => t('Job Title'),
-      'has_body' => TRUE,
-      'body_label' => t('Job Requirement')  
     ),
   );
 } 
@@ -214,7 +210,8 @@ function job_form($node, &$form_state) {
       // Getting user's company.
       $list = _company_list($node);
       //while ($company = db_fetch_object($list)) {
-      while ($list) {
+      for ($i=0;$i<$list->rowCount();$i++) {
+        $company = $list->FetchObject();
         $form['company']['#options'][$company->nid] = $company->title;
       } 
       $form['title'] = array(
@@ -232,11 +229,12 @@ function job_form($node, &$form_state) {
       );
       // Job Requirement
       //$form['body_field']['body'] = node_body_field($node, $type->body_label, $type->min_word_count);
-      $form['body_field']['body'] = array(
+      //$form['body_field']['body'] = array(
+      $form['requirement'] = array(
         '#type' => 'textarea',
-        '#title' => check_plain($type->body_label),
+        '#title' => t('Job Requirement'),
         '#rows' => 20,
-        '#default_value' => $node->body,
+        '#default_value' => isset($node->requirement) ? $node->requirement : '',
         '#required' => TRUE,
       );
       $form['application'] = array(
@@ -245,16 +243,9 @@ function job_form($node, &$form_state) {
         '#default_value' => isset($node->application) ? $node->application : '',
         '#required' => FALSE  
       );
-      $form['duedate'] = array(
-        '#type' => 'textfield',
-        '#title' => t('Due Date'),
-        '#default_value' => isset($node->duedate) && $node->duedate > 0 ? $node->duedate : '',
-        '#required' => FALSE
-      );
       //$form['body_filter']['filter'] = filter_form($node->format);
       break;
     case 'company':
-      // We need to define form elements for the node's title and body.
       if ($type->has_title) {
         $form['title'] = array(
           '#type' => 'textfield',
@@ -264,16 +255,12 @@ function job_form($node, &$form_state) {
           '#weight' => -5
         );
       }
-      if ($type->has_body) {
-        // In Drupal 6, we can use node_body_field() to get the body and filter
-        // elements. This replaces the old textarea + filter_form() method of
-        // setting this up. It will also ensure the teaser splitter gets set up
-        // properly.        
-        //$form['body_field'] = node_body_field($node, $type->body_label, $type->min_word_count);
-        $form['body_field']['body'] = array(
-          '#title' => check_plain($type->body_label),        
-        );
-      }
+      $form['description'] = array(
+        '#type' => 'textarea',
+        '#title' => t('Company description'),
+        '#default_value' => isset($node->description) ? $node->description : '',
+        '#required' => FALSE
+      );      
       $form['phone'] = array(
         '#type' => 'textfield',
         '#title' => t('Phone number'),
@@ -318,30 +305,28 @@ function _company_list($account) {
     ->condition('type','company','=')
     ->condition('uid',$account->uid,'=')
     ->orderBy('title')
-    ->execute()
-    ->fetchObject();
+    ->execute();
 }
 
 function job_insert($node) {
   $type = node_type_get_type($node);
   switch ($type->orig_type) {
     case 'job':
-      $nid = db_insert('jobad')
+      $nid = db_insert('job')
       ->fields(array(
-        'vid' => $node->vid,
         'nid' => $node->nid,
+        'requirement' => $node->requirement,
         'company' => $node->company,
         'application' => $node->application,
         'description' => $node->description,
-        'duedate' => $node->duedate,
       ))
       ->execute();
       break;
     case 'company':
       $nid = db_insert('company')
       ->fields(array(
-        'vid' => $node->vid,
         'nid' => $node->nid,
+        'description' => $node->description,
         'phone' => $node->phone,
         'fax' => $node->fax,
         'email' => $node->email,
@@ -360,9 +345,9 @@ function job_update($node) {
       $num_of_row = db_update('job')
       ->fields(array(
         'company' => $node->company,
+        'requirement' => $node->requirement,
         'application' => $node->application,
         'description' => $node->description,
-        'duedate' => $node->duedate,
       ))
       ->condition('nid',$node->nid,'=')
       ->execute();
@@ -370,6 +355,7 @@ function job_update($node) {
     case 'company':
       $num_of_row = db_update('company')
       ->fields(array(
+        'description' => $node->description,
         'phone' => $node->phone,
         'fax' => $node->fax,
         'email' => $node->email,
@@ -389,17 +375,21 @@ function job_load($nodes) {
       case 'job':
         $result = db_select('job','a')
           ->fields('a')
-          ->condition('vid',$node->vid,'=')
+          ->condition('nid',$node->nid,'=')
           ->execute()
           ->fetchObject();
-        $nodes[$record->nid]->forum_tid = $record->tid;
+        $nodes[$result->nid]->company = $result->company;
+        $nodes[$result->nid]->requirement = $result->requirement;
+        $nodes[$result->nid]->description = $result->description;
+        $nodes[$result->nid]->application = $result->application;
         break;
       case 'company':
         $result = db_select('company','c')
           ->fields('c')
-          ->condition('vid',$node->vid,'=')
+          ->condition('nid',$node->nid,'=')
           ->execute()
           ->fetchObject();
+        $nodes[$result->nid]->description = $result->description;
         $nodes[$result->nid]->phone = $result->phone;
         $nodes[$result->nid]->fax = $result->fax;
         $nodes[$result->nid]->email = $result->email;
@@ -427,96 +417,92 @@ function job_delete(&$node) {
 }
 
 function job_node_view($node, $view_mode, $langcode) {
-  //$type = node_type_get_type($node);
-  //$node = node_prepare($node, $teaser);
   switch ($node->type) {
     case 'job':
-      if (!$teaser) {
+      $node->content['requirement'] = array(
+        '#markup' => $node->requirement,
+        '#weight' => 0,
+      );
+      
+      if ($view_mode == 'full') {
         if ($node->company > 0) {
           $node->content['company'] = array(
-            '#markup' => theme('job_company', $node),
+            '#markup' => _company_bynid($node->company)->title,
             '#weight' => -10,
           );  
         }
         if ($node->description != '') {
           $node->content['description'] = array(
-            '#markup' => theme('job_description', $node),
+            '#markup' => $node->description,
             '#weight' => -5,
           );    
         }
-        $node->content['body'] = array(
-          '#markup' => theme('job_requirement', $node),
-          '#weight' => 0,
-        );
         if ($node->application != '') {        
           $node->content['application'] = array(
-            '#markup' => theme('job_application', $node),
+            '#markup' => $node->application,
             '#weight' => 5,
           );
         }
-        if ($node->duedate > 0) {            
-          $node->content['duedate'] = array(
-            '#markup' => theme('job_duedate', $node),
-            '#weight' => 8,
-          );
-        }
+        $breadcrumb = drupal_get_breadcrumb();
+        drupal_set_breadcrumb(array_merge($breadcrumb, array($node->title)));
       }
-      $breadcrumb = drupal_get_breadcrumb();
-      drupal_set_breadcrumb(array_merge($breadcrumb, array($node->title)));
       break;
     case 'company':
-      //if ($page) {
-        //$breadcrumb = array();
-        //$breadcrumb[] = array('path' => 'example', 'title' => t('example'));
-        //$breadcrumb[] = array('path' => 'example/'. $node->field1,
-          //'title' => t('%category', array('%category' => $node->field1)));
-        //$breadcrumb[] = array('path' => 'node/'. $node->nid);
-        //menu_set_location($breadcrumb);
-      //}
-    //  $node->title="Title ".$node->title;
+      if ($node->description != '') {
+        $node->content['description'] = array(
+          // use drupal_render_children()
+          '#markup' => $node->description,
+          '#weight' => -7,
+        );
+      }
       if ($view_mode == 'full') {
         if ($node->phone != '') {
           $node->content['phone'] = array(
-            //'#markup' => theme('company_phone', $node->phone),
             '#markup' => $node->phone,
             '#weight' => -5,
           );
         }
         if ($node->fax != '') {
           $node->content['fax'] = array(
-            //'#markup' => theme('company_phone', $node->phone),
             '#markup' => $node->fax,
             '#weight' => -3,
           );
         }
         if ($node->email != '') {
           $node->content['email'] = array(
-            //'#markup' => theme('company_phone', $node->phone),
             '#markup' => $node->email,
             '#weight' => -1,
           );
         }
         if ($node->website != '') {
           $node->content['website'] = array(
-            //'#markup' => theme('company_phone', $node->phone),
             '#markup' => $node->website,
             '#weight' => -1,
           );
         }
         if ($node->person != '') {
           $node->content['person'] = array(
-            //'#markup' => theme('company_phone', $node->phone),
             '#markup' => $node->person,
             '#weight' => -1,
           );
         }
+        $breadcrumb = drupal_get_breadcrumb();
+        drupal_set_breadcrumb(array_merge($breadcrumb, array($node->title)));
       }
-      $breadcrumb = drupal_get_breadcrumb();
-      drupal_set_breadcrumb(array_merge($breadcrumb, array($node->title)));
       break;
   }
   return $node;
 }
+
+function _company_bynid($nid) {
+  return db_select('node','n')
+   ->fields('n')
+   ->condition('type','company','=')
+   ->condition('nid',$nid,'=')
+   ->execute()
+   ->fetchObject();
+}
+
 
 /****** OLD CODE ******/
 
@@ -545,17 +531,6 @@ function theme_company_infofield($node) {
   }        
   $output .= '</div>';
   return $output;
-}
-
-function _company_bynid($nid) {
-  //return db_query("SELECT * FROM {node} WHERE type='company' and nid = %d ORDER BY title", $nid);
-  return db_select('node','n')
-   ->fields('n')
-   ->condition('type','company','=')
-   ->condition('nid',$nid,'=')
-   ->orderBy('title')
-   ->execute()
-   ->fetchObject();
 }
 
 function jobad_user($op, $edit, &$account) {
@@ -629,69 +604,6 @@ function jobad_access($op, $node, $account) {
   }
 } 
 
-//function jobad_view($node, $teaser = FALSE, $page = FALSE) {
-function jobad_view($node, $view_mode) {
-  print_r($node);
-  $type = node_type_get_type($node);
-  //$node = node_prepare($node, $teaser);
-  switch ($type->type) {
-    case 'jobad':
-      if (!$teaser) {
-        if ($node->company > 0) {
-          $node->content['company'] = array(
-            '#value' => theme('jobad_company', $node),
-            '#weight' => -10,
-          );  
-        }
-        if ($node->description != '') {
-          $node->content['description'] = array(
-            '#value' => theme('jobad_description', $node),
-            '#weight' => -5,
-          );    
-        }
-        $node->content['body'] = array(
-          '#value' => theme('jobad_requirement', $node),
-          '#weight' => 0,
-        );
-        if ($node->application != '') {        
-          $node->content['application'] = array(
-            '#value' => theme('jobad_application', $node),
-            '#weight' => 5,
-          );
-        }
-        if ($node->duedate > 0) {            
-          $node->content['duedate'] = array(
-            '#value' => theme('jobad_duedate', $node),
-            '#weight' => 8,
-          );
-        }
-      }
-      $breadcrumb = drupal_get_breadcrumb();
-      drupal_set_breadcrumb(array_merge($breadcrumb, array($node->title)));
-      break;
-    case 'company':
-      print "Company";
-      //if ($page) {
-        //$breadcrumb = array();
-        //$breadcrumb[] = array('path' => 'example', 'title' => t('example'));
-        //$breadcrumb[] = array('path' => 'example/'. $node->field1,
-          'title' => t('%category', array('%category' => $node->field1)));
-        //$breadcrumb[] = array('path' => 'node/'. $node->nid);
-        menu_set_location($breadcrumb);
-      //}
-    //  $node->title="Title ".$node->title;
-      $node->content['infofield'] = array(
-        '#value' => theme('company_infofield', $node),
-        '#weight' => 1,
-      );
-      $breadcrumb = drupal_get_breadcrumb();
-      drupal_set_breadcrumb(array_merge($breadcrumb, array($node->title)));
-      break;
-  }
-
-  return $node;
-}
-
 //function jobad_form_alter(&$form, $form_state, $form_id) {
   //$form['options']['status']['#default_value'] = 0;
   //$form['options']['promote']['#default_value'] = 0;
@@ -712,9 +624,6 @@ function jobad_theme() {
     'jobad_application' => array(
       'arguments' => array('node'),
     ),
-    'jobad_duedate' => array(
-      'arguments' => array('node'),
-    ),    
     'company_infofield' => array(
       'arguments' => array('node'),
     ),
@@ -743,13 +652,6 @@ function theme_jobad_requirement($node) {
 function theme_jobad_application($node) {
   $output = '<div class="jobad_application">';
   $output .= t('<strong>Application Method</strong><p>!content</p>', array('!content' => $node->application));
-  $output .= '</div>';
-  return $output;
-}
-
-function theme_jobad_duedate($node) {
-  $output = '<div class="jobad_duedate">';
-  $output .= t('<strong>Application Due Date</strong><p>!content</p>', array('!content' => $node->duedate));
   $output .= '</div>';
   return $output;
 }
