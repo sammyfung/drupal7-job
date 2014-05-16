@@ -1,6 +1,6 @@
 <?php
 /*
- *      jobad.install
+ *      job.install
  *      
  *      Copyright 2014 Sammy Fung <sammy@sammy.hk>
  *      
@@ -106,7 +106,7 @@ function job_schema() {
   return $schema;
 }
 
-function jobad_enable() {
+function job_enable() {
   // ***OLD***
   // Set default options for content types.
   //variable_set('comment_jobad', 0);
@@ -119,38 +119,39 @@ function jobad_enable() {
   field_associate_fields('taxonomy');
 
   // Create the company vocabulary if it does not exist.
-  $vocabulary = taxonomy_vocabulary_load(variable_get('jobad_companycategory_vocabulary', 0));  
+  $vocabulary = taxonomy_vocabulary_load(variable_get('job_vocabulary_companycategory', 0));  
   if (!$vocabulary) {
     $edit = array(
       'name' => t('Company Category'),
       'machine_name' => 'company_category',
       'description' => t('Category of company'),
       'hierarchy' => 1,
-      'module' => 'jobad',
+      'module' => 'job',
       'weight' => -10,
     );
     $vocabulary = (object) $edit;
     taxonomy_vocabulary_save($vocabulary);
-    variable_set('jobad_companycategory_vocabulary', $vocabulary->vid);
+    variable_set('job_vocabulary_companycategory', $vocabulary->vid);
   } 
   
   // Create the location vocabulary if it does not exist.
-  $vocabulary = taxonomy_vocabulary_load(variable_get('jobad_location_vocabulary', 0));  
+  $vocabulary = taxonomy_vocabulary_load(variable_get('job_vocabulary_companylocation', 0));  
   if (!$vocabulary) {
     $edit = array(
-      'name' => t('Location'),
-      'machine_name' => 'location',
+      'name' => t('Company Location'),
+      'machine_name' => 'company_location',
       'description' => t('Location of company'),
       'hierarchy' => 1,
-      'module' => 'jobad',
+      'module' => 'job',
       'weight' => -10,
     );
     $vocabulary = (object) $edit;
     taxonomy_vocabulary_save($vocabulary);
-    variable_set('jobad_location_vocabulary', $vocabulary->vid);
+    variable_set('job_vocabulary_companylocation', $vocabulary->vid);
   } 
   
   // Add suggested locations to vocabulary.
+  /*
   $location = array('Central District', 'Eastern', 'Southern', 'Wan Chai', 'Western', 'Kowloon City', 'Kwun Tong', 'Sham Shui Po', 
     'Wong Tai Sin', 'Yau Tsim Mong', 'Kwai Tsing', 'Northern', 'Sai Kung', 'Shatin', 'Tuen Mun', 'Tai Po', 'Tsuen Wan', 'Yuen Long', 
     'Lautau Island', 'Other Islands', 'Macao', 'China');  
@@ -164,21 +165,22 @@ function jobad_enable() {
     $term = (object) $edit;
     taxonomy_term_save($term);
   }
+  */
 
   // Create the job type vocabulary if it does not exist.
-  $vocabulary = taxonomy_vocabulary_load(variable_get('jobad_type_vocabulary', 0));  
+  $vocabulary = taxonomy_vocabulary_load(variable_get('job_vocabulary_jobtype', 0));  
   if (!$vocabulary) {
     $edit = array(
       'name' => t('Job Type'),
       'machine_name' => 'job_type',
       'description' => t('Type of job'),
       'hierarchy' => 1,
-      'module' => 'jobad',
+      'module' => 'job',
       'weight' => -10,
     );
     $vocabulary = (object) $edit;
     taxonomy_vocabulary_save($vocabulary);
-    variable_set('jobad_type_vocabulary', $vocabulary->vid);
+    variable_set('job_vocabulary_jobtype', $vocabulary->vid);
   } 
   
   // Add Permanent, Part Time, Contract to this vocabulary.
@@ -195,22 +197,23 @@ function jobad_enable() {
   }
 
   // Create the job category vocabulary if it does not exist.
-  $vocabulary = taxonomy_vocabulary_load(variable_get('jobad_category_vocabulary', 0));  
+  $vocabulary = taxonomy_vocabulary_load(variable_get('job_vocabulary_jobcategory', 0));  
   if (!$vocabulary) {
     $edit = array(
       'name' => t('Job Category'),
       'machine_name' => 'job_category',
       'description' => t('Category of job'),
       'hierarchy' => 1,
-      'module' => 'jobad',
+      'module' => 'job',
       'weight' => -10,
     );
     $vocabulary = (object) $edit;
     taxonomy_vocabulary_save($vocabulary);
-    variable_set('jobad_category_vocabulary', $vocabulary->vid);
+    variable_set('job_vocabulary_jobcategory', $vocabulary->vid);
   } 
   
   // Add suggested job category to this vocabulary.
+  /*
   $category = array('Accounting', 'Admin & Secretarial', 'Banking & Finance', 'Building & Architectural', 'Business Development', 'Catering', 
     'Customer Service', 'Design', 'Education', 'Engineering', 'Hotel & Tourism', 'Health & Beauty Care', 'Human Resources', 
     'Information Technology', 'Insurance', 'Legal & Company Secretary', 'Logistics', 'Manufacturing', 'Marketing & Public Relations', 
@@ -226,10 +229,11 @@ function jobad_enable() {
     $term = (object) $edit;
     taxonomy_term_save($term);    
   }
-  
+  */
+
   // Ensure the forum node type is available.
   node_types_rebuild();
   $types = node_type_get_types();
-  node_add_body_field($types['jobad']);  
+  node_add_body_field($types['job']);  
 }
 

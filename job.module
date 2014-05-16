@@ -1,6 +1,6 @@
 <?php
 /*
- *      jobad.module
+ *      job.module
  *      
  *      Copyright 2014 Sammy Fung <sammy@sammy.hk>
  *      
@@ -173,25 +173,21 @@ function _job_page() {
   }
 }
 
-
-/****** OLD CODE ******/
-
-/*
-function jobad_node_info() {
+function job_node_info() {
   return array(
     'company' => array(
-      'name' => t('Company Information'),
-      'base' => 'jobad',
+      'name' => t('Company'),
+      'base' => 'job',
       'description' => "This is a basic company information node type with a few fields.",
       'has_title' => TRUE,
       'title_label' => t('Company Name'),
       'has_body' => TRUE,
       'body_label' => t('Company Description')
     ),
-    'jobad' => array(
-      'name' => t('Job Ad'),
-      'base' => 'jobad',
-      'description' => "This is a job ad node type with a few fields.",
+    'job' => array(
+      'name' => t('Job'),
+      'base' => 'job',
+      'description' => "This is a job post node type with a few fields.",
       'has_title' => TRUE,
       'title_label' => t('Job Title'),
       'has_body' => TRUE,
@@ -200,137 +196,11 @@ function jobad_node_info() {
   );
 } 
 
-function theme_company_infofield($node) {
-  print 'infofield';
-  $output = '<div class="company">';
-  if ($node->body != '') {
-    $output .= t('<strong>Company Information</strong><br>');
-  }
-  if ($node->phone != '') {
-    $output .= t('Phone: %phone<br>', array('%phone' => check_plain($node->phone)));
-  }
-  if ($node->fax != '') {
-    $output .= t('Fax: %fax<br>', array('%fax' => check_plain($node->fax)));
-  }
-  if ($node->email != '') {
-    $output .= t('Email Address: %email<br>', array('%email' => check_plain($node->email)));
-  }
-  if ($node->website != '') {
-    $output .= t('Website URL: <a href="http://%url">%website</a><br>', array('%url' => $node->website,'%website' => check_plain($node->website)));
-    drupal_set_title(t("<a href='!url'>!name</a>", array('!url' => check_plain($node->website), '!name' => $node->title)));
-  }
-  if ($node->person != '') {
-    $output .= t('Contact Person: %person<br>', array('%person' => check_plain($node->person)));
-  }        
-  $output .= '</div>';
-  return $output;
-}
-
-function _company_list($account) {
-  //return db_query("SELECT * FROM {node} WHERE type='company' and uid = :uid ORDER BY title", array(':uid'=>uid));
-  return db_select('node','n')
-    ->fields('n')
-    ->condition('type','company','=')
-    ->condition('uid',$account->uid,'=')
-    ->orderBy('title')
-    ->execute()
-    ->fetchObject();
-}
-
-function _company_bynid($nid) {
-  //return db_query("SELECT * FROM {node} WHERE type='company' and nid = %d ORDER BY title", $nid);
-  return db_select('node','n')
-   ->fields('n')
-   ->condition('type','company','=')
-   ->condition('nid',$nid,'=')
-   ->orderBy('title')
-   ->execute()
-   ->fetchObject();
-}
-
-function jobad_user($op, $edit, &$account) {
-  switch ($op) {
-    case 'view':
-      $list = _company_list($account);
-      $account->content[company]['#value']="<div class='company_list'><h3>List of Companies</h3><table>\n";
-      $account->content[company]['#value'].="  <tr><th>Company Name</th></tr>\n";
-      while ($company = db_fetch_object($list)) {
-        $account->content[company]['#value'] .= t("  <tr class='@class'><td><a href='@url'>@name</a></td></tr>\n", array('@class' => (++$i % 2 ? 'odd' : 'even'), '@name' => $company->title, '@url' => url('node/'.$company->nid))); 
-      }
-      $account->content[company]['#value'] .= "</table></div>\n";
-      $account->content[company]['#title'] = 'List of Companies'; 
-      //$account->content[company]['#type'] = 'user_company_info'; 
-      $account->content[company]['#weight'] = 10; 
-      break;
-  }  
-}
-
-function jobad_access($op, $node, $account) {
-  $type = node_get_types('type', $node);
-  switch ($type->orig_type) {
-    case 'jobad':
-      if ($op == 'create') {
-        // Only users with permission to do so may create this node type.
-        if (user_access('create own job ad', $account) || user_access('administer job ad', $account)) {
-          return TRUE;
-        }
-      }
-    
-      // Users who create a node may edit or delete it later, assuming they have the
-      // necessary permissions.
-      if ($op == 'update' || $op == 'delete') {
-        if ((user_access('edit own job ad', $account) && ($account->uid == $node->uid)) || user_access('administer job ad', $account)) {
-          return TRUE;
-        }
-      }
-      if ($op == 'view') {
-        if (user_access('access job ad', $account) || user_access('administer job ad', $account)) {
-          return TRUE;
-        }
-      }
-      break;
-    case 'company':
-      if ($op == 'view') {
-        return (user_access('access company info'));
-      }
-  
-      if ($op == 'create') {
-        // Only users with permission to do so may create this node type.
-        if (user_access('create multiple company info', $account) || user_access('administer company info', $account)) {
-          return TRUE;
-        }
-        else if (user_access('create single company info', $account)) {
-          // query count number of company created by user
-          $total = db_fetch_object(db_query("SELECT count(*) as c FROM {node} WHERE type='company' and uid = %d", $account->uid));
-          if ($total->c == 0) {
-            return TRUE;
-          }
-        }
-      }
-      
-      // Users who create a node may edit or delete it later, assuming they have the
-      // necessary permissions.
-      if ($op == 'update' || $op == 'delete') {
-        if ((user_access('edit own company info', $account) && ($account->uid == $node->uid)) || user_access('administer company info', $account)) {
-          return TRUE;
-        }
-      }  
-      break;
-  }
-} 
-
-function jobad_form($node, &$form_state) {
-  // In hook_form (d7), user metioned d7 doesn't use hook_form anymore, and use add after node_add_body_field and add fields after node_types_rebuild(); at install.
-  // http://api.drupal.org/api/drupal/modules!node!node.api.php/function/hook_form/7
-  //$form = node_content_form($node, $form_state);
+function job_form($node, &$form_state) {
   $type = node_type_get_type($node);
-  //var_dump($type);
-  //var_dump($node);
-  //$type = 'jobad';
-  //switch ($type) {
+  $form = array();
   switch ($type->orig_type) {
-    case 'jobad':
-      // We need to define form elements for the node's title and body.
+    case 'job':
       $form['company'] = array(
         '#type' => 'select',
         '#title' => t('Company'),
@@ -442,11 +312,20 @@ function jobad_form($node, &$form_state) {
   return $form;
 }
 
-function jobad_insert($node) {
+function _company_list($account) {
+  return db_select('node','n')
+    ->fields('n')
+    ->condition('type','company','=')
+    ->condition('uid',$account->uid,'=')
+    ->orderBy('title')
+    ->execute()
+    ->fetchObject();
+}
+
+function job_insert($node) {
   $type = node_type_get_type($node);
   switch ($type->orig_type) {
-    case 'jobad':
-      //db_query("INSERT INTO {jobad} (vid, nid, company, application, description, duedate) VALUES (%d, %d, '%d', '%s', '%s', '%s')", $node->vid, $node->nid, $node->company, $node->application, $node->description, $node->duedate);
+    case 'job':
       $nid = db_insert('jobad')
       ->fields(array(
         'vid' => $node->vid,
@@ -459,8 +338,7 @@ function jobad_insert($node) {
       ->execute();
       break;
     case 'company':
-      //db_query("INSERT INTO {company} (vid, nid, phone, fax, email, website, person) VALUES (%d, %d, '%s', '%s', '%s', '%s', '%s')", $node->vid, $node->nid, $node->phone, $node->fax, $node->email, $node->website, $node->person);
-      $nid = db_insert('company') 
+      $nid = db_insert('company')
       ->fields(array(
         'vid' => $node->vid,
         'nid' => $node->nid,
@@ -475,14 +353,11 @@ function jobad_insert($node) {
   }
 }
 
-function jobad_update($node) {
-  //$type = node_get_types('type', $node);
+function job_update($node) {
   $type = node_type_get_type($node);
   switch ($type->orig_type) {
-    case 'jobad':
-      //db_query("UPDATE {jobad} SET company = '%d', application = '%s', description = '%s', duedate = '%s' WHERE nid = %d", 
-      //  $node->company, $node->application, $node->description, $node->duedate, $node->nid);
-      $num_of_row = db_update('jobad')
+    case 'job':
+      $num_of_row = db_update('job')
       ->fields(array(
         'company' => $node->company,
         'application' => $node->application,
@@ -493,8 +368,6 @@ function jobad_update($node) {
       ->execute();
       break;
     case 'company':
-      //db_query("UPDATE {company} SET phone = '%s', fax = '%s', email = '%s', website = '%s', person = '%s' WHERE nid = %d", 
-      //  $node->phone, $node->fax, $node->email, $node->website, $node->person, $node->nid);
       $num_of_row = db_update('company')
       ->fields(array(
         'phone' => $node->phone,
@@ -509,55 +382,252 @@ function jobad_update($node) {
   }
 }
 
-function jobad_load($nodes) {
+function job_load($nodes) {
   foreach ($nodes as $node) {
-  $type = node_type_get_type($node);
-  switch ($type->type) {
-    case 'jobad':
-      //$additions = db_fetch_object(db_query('SELECT * FROM {jobad} WHERE vid = %d', $node->vid));
-      $result = db_select('jobad','a')
-        ->fields('a')
-        ->condition('vid',$node->vid,'=')
-        ->execute()
-        ->fetchObject();
-      $nodes[$record->nid]->forum_tid = $record->tid;
-      break;
-    case 'company':
-      print 'company';
-      //$additions = db_fetch_object(db_query('SELECT * FROM {company} WHERE vid = %d', $node->vid));    
-      $result = db_select('company','c')
-        ->fields('c')
-        ->condition('vid',$node->vid,'=')
-        ->execute()
-        ->fetchObject();
-      $nodes[$result->nid]->phone = $result->phone;
-      $nodes[$result->nid]->fax = $result->fax;
-      $nodes[$result->nid]->email = $result->email;
-      $nodes[$result->nid]->website = $result->website;
-      $nodes[$result->nid]->person = $result->person;    
-      break;
+    $type = node_type_get_type($node);
+    switch ($type->type) {
+      case 'job':
+        $result = db_select('job','a')
+          ->fields('a')
+          ->condition('vid',$node->vid,'=')
+          ->execute()
+          ->fetchObject();
+        $nodes[$record->nid]->forum_tid = $record->tid;
+        break;
+      case 'company':
+        $result = db_select('company','c')
+          ->fields('c')
+          ->condition('vid',$node->vid,'=')
+          ->execute()
+          ->fetchObject();
+        $nodes[$result->nid]->phone = $result->phone;
+        $nodes[$result->nid]->fax = $result->fax;
+        $nodes[$result->nid]->email = $result->email;
+        $nodes[$result->nid]->website = $result->website;
+        $nodes[$result->nid]->person = $result->person;    
+        break;
+    }
   }
-  }
-  //return $additions;
 }
 
-function jobad_delete(&$node) {
-  $type = node_type_get_type('type', $node);
+function job_delete(&$node) {
+  $type = node_type_get_type($node);
   switch ($type->orig_type) {
-    case 'jobad':
-      //db_query('DELETE FROM {jobad} WHERE nid = %d', $node->nid);
-      $num_of_row = db_delete('jobad')
+    case 'job':
+      $num_of_row = db_delete('job')
         ->condition('nid', $node->nid)
         ->execute();
       break;
     case 'company':
-      //db_query('DELETE FROM {company} WHERE nid = %d', $node->nid);
       $num_of_row = db_delete('company')
         ->condition('nid', $node->nid)
         ->execute();
       break;
   }
 }
+
+function job_node_view($node, $view_mode, $langcode) {
+  //$type = node_type_get_type($node);
+  //$node = node_prepare($node, $teaser);
+  switch ($node->type) {
+    case 'job':
+      if (!$teaser) {
+        if ($node->company > 0) {
+          $node->content['company'] = array(
+            '#markup' => theme('job_company', $node),
+            '#weight' => -10,
+          );  
+        }
+        if ($node->description != '') {
+          $node->content['description'] = array(
+            '#markup' => theme('job_description', $node),
+            '#weight' => -5,
+          );    
+        }
+        $node->content['body'] = array(
+          '#markup' => theme('job_requirement', $node),
+          '#weight' => 0,
+        );
+        if ($node->application != '') {        
+          $node->content['application'] = array(
+            '#markup' => theme('job_application', $node),
+            '#weight' => 5,
+          );
+        }
+        if ($node->duedate > 0) {            
+          $node->content['duedate'] = array(
+            '#markup' => theme('job_duedate', $node),
+            '#weight' => 8,
+          );
+        }
+      }
+      $breadcrumb = drupal_get_breadcrumb();
+      drupal_set_breadcrumb(array_merge($breadcrumb, array($node->title)));
+      break;
+    case 'company':
+      //if ($page) {
+        //$breadcrumb = array();
+        //$breadcrumb[] = array('path' => 'example', 'title' => t('example'));
+        //$breadcrumb[] = array('path' => 'example/'. $node->field1,
+          //'title' => t('%category', array('%category' => $node->field1)));
+        //$breadcrumb[] = array('path' => 'node/'. $node->nid);
+        //menu_set_location($breadcrumb);
+      //}
+    //  $node->title="Title ".$node->title;
+      if ($view_mode == 'full') {
+        if ($node->phone != '') {
+          $node->content['phone'] = array(
+            //'#markup' => theme('company_phone', $node->phone),
+            '#markup' => $node->phone,
+            '#weight' => -5,
+          );
+        }
+        if ($node->fax != '') {
+          $node->content['fax'] = array(
+            //'#markup' => theme('company_phone', $node->phone),
+            '#markup' => $node->fax,
+            '#weight' => -3,
+          );
+        }
+        if ($node->email != '') {
+          $node->content['email'] = array(
+            //'#markup' => theme('company_phone', $node->phone),
+            '#markup' => $node->email,
+            '#weight' => -1,
+          );
+        }
+        if ($node->website != '') {
+          $node->content['website'] = array(
+            //'#markup' => theme('company_phone', $node->phone),
+            '#markup' => $node->website,
+            '#weight' => -1,
+          );
+        }
+        if ($node->person != '') {
+          $node->content['person'] = array(
+            //'#markup' => theme('company_phone', $node->phone),
+            '#markup' => $node->person,
+            '#weight' => -1,
+          );
+        }
+      }
+      $breadcrumb = drupal_get_breadcrumb();
+      drupal_set_breadcrumb(array_merge($breadcrumb, array($node->title)));
+      break;
+  }
+  return $node;
+}
+
+/****** OLD CODE ******/
+
+/*
+function theme_company_infofield($node) {
+  print 'infofield';
+  $output = '<div class="company">';
+  if ($node->body != '') {
+    $output .= t('<strong>Company Information</strong><br>');
+  }
+  if ($node->phone != '') {
+    $output .= t('Phone: %phone<br>', array('%phone' => check_plain($node->phone)));
+  }
+  if ($node->fax != '') {
+    $output .= t('Fax: %fax<br>', array('%fax' => check_plain($node->fax)));
+  }
+  if ($node->email != '') {
+    $output .= t('Email Address: %email<br>', array('%email' => check_plain($node->email)));
+  }
+  if ($node->website != '') {
+    $output .= t('Website URL: <a href="http://%url">%website</a><br>', array('%url' => $node->website,'%website' => check_plain($node->website)));
+    drupal_set_title(t("<a href='!url'>!name</a>", array('!url' => check_plain($node->website), '!name' => $node->title)));
+  }
+  if ($node->person != '') {
+    $output .= t('Contact Person: %person<br>', array('%person' => check_plain($node->person)));
+  }        
+  $output .= '</div>';
+  return $output;
+}
+
+function _company_bynid($nid) {
+  //return db_query("SELECT * FROM {node} WHERE type='company' and nid = %d ORDER BY title", $nid);
+  return db_select('node','n')
+   ->fields('n')
+   ->condition('type','company','=')
+   ->condition('nid',$nid,'=')
+   ->orderBy('title')
+   ->execute()
+   ->fetchObject();
+}
+
+function jobad_user($op, $edit, &$account) {
+  switch ($op) {
+    case 'view':
+      $list = _company_list($account);
+      $account->content[company]['#value']="<div class='company_list'><h3>List of Companies</h3><table>\n";
+      $account->content[company]['#value'].="  <tr><th>Company Name</th></tr>\n";
+      while ($company = db_fetch_object($list)) {
+        $account->content[company]['#value'] .= t("  <tr class='@class'><td><a href='@url'>@name</a></td></tr>\n", array('@class' => (++$i % 2 ? 'odd' : 'even'), '@name' => $company->title, '@url' => url('node/'.$company->nid))); 
+      }
+      $account->content[company]['#value'] .= "</table></div>\n";
+      $account->content[company]['#title'] = 'List of Companies'; 
+      //$account->content[company]['#type'] = 'user_company_info'; 
+      $account->content[company]['#weight'] = 10; 
+      break;
+  }  
+}
+
+function jobad_access($op, $node, $account) {
+  $type = node_get_types('type', $node);
+  switch ($type->orig_type) {
+    case 'jobad':
+      if ($op == 'create') {
+        // Only users with permission to do so may create this node type.
+        if (user_access('create own job ad', $account) || user_access('administer job ad', $account)) {
+          return TRUE;
+        }
+      }
+    
+      // Users who create a node may edit or delete it later, assuming they have the
+      // necessary permissions.
+      if ($op == 'update' || $op == 'delete') {
+        if ((user_access('edit own job ad', $account) && ($account->uid == $node->uid)) || user_access('administer job ad', $account)) {
+          return TRUE;
+        }
+      }
+      if ($op == 'view') {
+        if (user_access('access job ad', $account) || user_access('administer job ad', $account)) {
+          return TRUE;
+        }
+      }
+      break;
+    case 'company':
+      if ($op == 'view') {
+        return (user_access('access company info'));
+      }
+  
+      if ($op == 'create') {
+        // Only users with permission to do so may create this node type.
+        if (user_access('create multiple company info', $account) || user_access('administer company info', $account)) {
+          return TRUE;
+        }
+        else if (user_access('create single company info', $account)) {
+          // query count number of company created by user
+          $total = db_fetch_object(db_query("SELECT count(*) as c FROM {node} WHERE type='company' and uid = %d", $account->uid));
+          if ($total->c == 0) {
+            return TRUE;
+          }
+        }
+      }
+      
+      // Users who create a node may edit or delete it later, assuming they have the
+      // necessary permissions.
+      if ($op == 'update' || $op == 'delete') {
+        if ((user_access('edit own company info', $account) && ($account->uid == $node->uid)) || user_access('administer company info', $account)) {
+          return TRUE;
+        }
+      }  
+      break;
+  }
+} 
 
 //function jobad_view($node, $teaser = FALSE, $page = FALSE) {
 function jobad_view($node, $view_mode) {
