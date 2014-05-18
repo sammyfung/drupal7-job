@@ -85,8 +85,8 @@ function job_menu() {
   $items['job'] = array(
     'title' => 'Job Categories',
     'description' => 'List of Job Categories',
-    'page callbacks' => 'job_list_category_page',
-    'access arguments' => array('access job content', 'administer job module'),
+    'page callback' => 'job_list_category_page',
+    'access arguments' => array('access job content'),
     'type' => MENU_NORMAL_ITEM,
   );
   /*
@@ -511,13 +511,21 @@ function _company_bynid($nid) {
 function job_list_category_page() {
   drupal_set_title(t('Listing of Job Category'));
   $output = "<div class='jobad'>";
-  $list = jobad_list_category();
-  while ($category = db_fetch_object($list)) {
+  $list = _job_list_category();
+  while ($category = $list->fetchObject()) {
     //l($category->name,'taxonomy/term/'.$category->tid)
-    $output .= t("<div class='jobad_catagory_!cid'>!category </div>", array('!cid' => $category->tid, '!category' => l($category->name,'jobad/category/'.$category->tid)));
+    $output .= t("<div class='job_catagory_!cid'>!category </div>", array('!cid' => $category->tid, '!category' => l($category->name,'job/category/'.$category->tid)));
   }
   $output .= "</div>";
   return $output;
+}
+
+function _job_list_category($cid = 0) {
+  if ($cid > 0)
+    $category = ' AND tid = '.$cid;
+  else $category = '';
+  $additions = db_query('SELECT * FROM {taxonomy_term_data} WHERE vid = :vid' . $category, array(':vid' => variable_get('job_vocabulary_jobcategory', 0)));
+  return $additions;
 }
 
 /****** OLD CODE ******/
@@ -670,25 +678,6 @@ function theme_jobad_application($node) {
   $output .= t('<strong>Application Method</strong><p>!content</p>', array('!content' => $node->application));
   $output .= '</div>';
   return $output;
-}
-
-function jobad_page() {
-  drupal_set_title(t('Listing of Job Category'));
-  $output = "<div class='jobad'>";
-  $list = jobad_list_category();
-  while ($category = db_fetch_object($list)) {
-    //l($category->name,'taxonomy/term/'.$category->tid)
-    $output .= t("<div class='jobad_catagory_!cid'>!category </div>", array('!cid' => $category->tid, '!category' => l($category->name,'jobad/category/'.$category->tid)));
-  }
-  $output .= "</div>";
-  return $output;
-}
-
-function jobad_list_category($cid = 0) {
-  if ($cid > 0)
-    $category = ' AND tid = '.$cid;
-  $additions = db_query('SELECT * FROM {term_data} WHERE vid = %d' . $category, variable_get('jobad_category_vocabulary', 0));
-  return $additions;
 }
 
 function jobad_list_job($cids, $op = 'page') {
