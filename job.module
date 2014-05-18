@@ -84,7 +84,9 @@ function job_menu() {
   );
   $items['job'] = array(
     'title' => 'Job Categories',
-    'access arguments' => array('access job content'),
+    'description' => 'List of Job Categories',
+    'page callbacks' => 'job_list_category_page',
+    'access arguments' => array('access job content', 'administer job module'),
     'type' => MENU_NORMAL_ITEM,
   );
   /*
@@ -141,6 +143,9 @@ function job_admin_form_validate($form, &$form_state) {
 
 function job_permission() {
   return array(
+    'administer job module' => array(
+      'title' => t('Administer the job board module'),
+    ),
     'access job content' => array(
       'title' => t('Access content for the job board module'),
     )
@@ -503,6 +508,17 @@ function _company_bynid($nid) {
    ->fetchObject();
 }
 
+function job_list_category_page() {
+  drupal_set_title(t('Listing of Job Category'));
+  $output = "<div class='jobad'>";
+  $list = jobad_list_category();
+  while ($category = db_fetch_object($list)) {
+    //l($category->name,'taxonomy/term/'.$category->tid)
+    $output .= t("<div class='jobad_catagory_!cid'>!category </div>", array('!cid' => $category->tid, '!category' => l($category->name,'jobad/category/'.$category->tid)));
+  }
+  $output .= "</div>";
+  return $output;
+}
 
 /****** OLD CODE ******/
 
