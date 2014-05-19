@@ -426,26 +426,26 @@ function job_node_view($node, $view_mode, $langcode) {
   switch ($node->type) {
     case 'job':
       $node->content['requirement'] = array(
-        '#markup' => $node->requirement,
+        '#markup' => t('<div><strong>Job Requirement</strong></div><div>!requirement</div>', array('!requirement' => $node->requirement)),
         '#weight' => 0,
       );
       
       if ($view_mode == 'full') {
         if ($node->company > 0) {
           $node->content['company'] = array(
-            '#markup' => _company_bynid($node->company)->title,
+            '#markup' => t('<div><a href="?q=node/!nid">!company</a></div>', array('!nid' => _company_bynid($node->company)->nid,'!company' => _company_bynid($node->company)->title)),
             '#weight' => -10,
           );  
         }
         if ($node->description != '') {
           $node->content['description'] = array(
-            '#markup' => $node->description,
+            '#markup' => t('<div><strong>Company Description</strong></div><div>!description</div>', array('!description' => $node->description)),
             '#weight' => -5,
           );    
         }
         if ($node->application != '') {        
           $node->content['application'] = array(
-            '#markup' => $node->application,
+            '#markup' => t('<div><strong>Job Application</strong></div><div>!application</div>', array('!application' => $node->application)),
             '#weight' => 5,
           );
         }
@@ -456,39 +456,38 @@ function job_node_view($node, $view_mode, $langcode) {
     case 'company':
       if ($node->description != '') {
         $node->content['description'] = array(
-          // use drupal_render_children()
-          '#markup' => $node->description,
+          '#markup' => t('<div>!description</div>', array('!description' => $node->description)),
           '#weight' => -7,
         );
       }
       if ($view_mode == 'full') {
         if ($node->phone != '') {
           $node->content['phone'] = array(
-            '#markup' => $node->phone,
+            '#markup' => t('<div><strong>Phone:</strong> !phone</div>', array('!phone' => check_plain($node->phone))),
             '#weight' => -5,
           );
         }
         if ($node->fax != '') {
           $node->content['fax'] = array(
-            '#markup' => $node->fax,
+            '#markup' => t('<div><strong>Fax:</strong> !fax</div>', array('!fax' => check_plain($node->fax))),
             '#weight' => -3,
           );
         }
         if ($node->email != '') {
           $node->content['email'] = array(
-            '#markup' => $node->email,
+            '#markup' => t('<div><strong>Email:</strong> <a href="mailto:!email">!email</a></div>', array('!email' => check_plain($node->email))),
             '#weight' => -1,
           );
         }
         if ($node->website != '') {
           $node->content['website'] = array(
-            '#markup' => $node->website,
+            '#markup' => t('<div><strong>Website:</strong> <a href="!website">!website</a></div>', array('!website' => check_plain($node->website))),
             '#weight' => -1,
           );
         }
         if ($node->person != '') {
           $node->content['person'] = array(
-            '#markup' => $node->person,
+            '#markup' => t('<div><strong>Contact Person:</strong> !person</div>', array('!person' => check_plain($node->person))),
             '#weight' => -1,
           );
         }
@@ -532,32 +531,6 @@ function _job_list_category($cid = 0) {
 /****** OLD CODE ******/
 
 /*
-function theme_company_infofield($node) {
-  print 'infofield';
-  $output = '<div class="company">';
-  if ($node->body != '') {
-    $output .= t('<strong>Company Information</strong><br>');
-  }
-  if ($node->phone != '') {
-    $output .= t('Phone: %phone<br>', array('%phone' => check_plain($node->phone)));
-  }
-  if ($node->fax != '') {
-    $output .= t('Fax: %fax<br>', array('%fax' => check_plain($node->fax)));
-  }
-  if ($node->email != '') {
-    $output .= t('Email Address: %email<br>', array('%email' => check_plain($node->email)));
-  }
-  if ($node->website != '') {
-    $output .= t('Website URL: <a href="http://%url">%website</a><br>', array('%url' => $node->website,'%website' => check_plain($node->website)));
-    drupal_set_title(t("<a href='!url'>!name</a>", array('!url' => check_plain($node->website), '!name' => $node->title)));
-  }
-  if ($node->person != '') {
-    $output .= t('Contact Person: %person<br>', array('%person' => check_plain($node->person)));
-  }        
-  $output .= '</div>';
-  return $output;
-}
-
 function jobad_user($op, $edit, &$account) {
   switch ($op) {
     case 'view':
@@ -634,52 +607,6 @@ function jobad_access($op, $node, $account) {
   //$form['options']['promote']['#default_value'] = 0;
   //$form['workflow']['node_options']['#default_value'] = array();
 //}
-
-function jobad_theme() {
-  return array(
-    'jobad_company' => array(
-      'arguments' => array('node'), 
-    ),
-    'jobad_description' => array(
-      'arguments' => array('node'), 
-    ),
-    'jobad_requirement' => array(
-      'arguments' => array('node'), 
-    ),
-    'jobad_application' => array(
-      'arguments' => array('node'),
-    ),
-    'company_infofield' => array(
-      'arguments' => array('node'),
-    ),
-  );
-}
-
-function theme_jobad_company($node) {
-  $list = _company_bynid($node->company);
-  //$company = db_fetch_object($list);
-  $company = $list;
-  if ($node->company > 0)
-    $output = t("<div>by !company</div>", array('!company' => l($company->title,'node/'.$node->company)));  
-  return $output;
-}
-
-function theme_jobad_description($node) {
-  $output = t("<div class='jobad_description'><p><strong>Job Description</strong></p><p>!content</p></div>", array('!content' => $node->description));
-  return $output;
-}
-
-function theme_jobad_requirement($node) {
-  $output = t("<div class='jobad_requirement'><p><strong>Job Requirement</strong></p><p>!content</p></div>", array('!content' => $node->body));
-  return $output;
-}
-
-function theme_jobad_application($node) {
-  $output = '<div class="jobad_application">';
-  $output .= t('<strong>Application Method</strong><p>!content</p>', array('!content' => $node->application));
-  $output .= '</div>';
-  return $output;
-}
 
 function jobad_list_job($cids, $op = 'page') {
   $category = taxonomy_terms_parse_string($cids);
