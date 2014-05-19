@@ -199,6 +199,7 @@ function job_node_info() {
 
 function job_form($node, &$form_state) {
   $type = node_type_get_type($node);
+  var_dump($type);
   $form = array();
   switch ($type->orig_type) {
     case 'job':
@@ -207,7 +208,7 @@ function job_form($node, &$form_state) {
         '#title' => t('Company'),
         '#default_value' => isset($node->company) ? $node->company : -1,
         '#options' => array(
-          -1 => '-- Annoymous --',
+          0 => '-- Annoymous --',
         ),    
         '#required' => FALSE,
         '#weight' => -10
@@ -299,7 +300,7 @@ function job_form($node, &$form_state) {
       break;
   }
   //$form['options']['status']['#default_value'] = 0;
-  //$form['options']['promote']['#default_value'] = 0;
+  $form['options']['promote']['#default_value'] = 0;
   //$form['workflow']['node_options']['#default_value'] = array();
   return $form;
 }

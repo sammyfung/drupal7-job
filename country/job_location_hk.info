@@ -1,0 +1,6 @@
+; $Id$
+name = Job Location - Hong Kong
+description = job location (Hong Kong)
+core = 7.x
+dependencies[] = job
+package = "Job Board"

@@ -93,16 +93,14 @@ function job_schema() {
   return $schema;
 }
 
+function job_install() {
+  variable_set("comment_company", 1);
+  variable_set("comment_job", 1);
+  variable_set("node_options_company", array("status"));
+  variable_set("node_options_job", array("status"));
+}
+
 function job_enable() {
-  // ***OLD***
-  // Set default options for content types.
-  //variable_set('comment_jobad', 0);
-  //variable_set('comment_company', 0);  
-  // ******
-  
-  // If we enable forum at the same time as taxonomy we need to call
-  // field_associate_fields() as otherwise the field won't be enabled until
-  // hook modules_enabled is called which takes place after hook_enable events.  
   field_associate_fields('taxonomy');
 
   // Create the company vocabulary if it does not exist.
@@ -119,7 +117,34 @@ function job_enable() {
     $vocabulary = (object) $edit;
     taxonomy_vocabulary_save($vocabulary);
     variable_set('job_vocabulary_companycategory', $vocabulary->vid);
-  } 
+    $field = array(
+      'field_name' => 'field_companycategory',
+      'type' => 'taxonomy_term_reference',
+      'settings' => array(
+        'allowed_values' => array(
+          array(
+            'vocabulary' => $vocabulary->machine_name,
+            'parent' => 0
+          ),
+        ),
+      ),
+    );
+    field_create_field($field);
+    $instance = array(
+      'field_name' => 'field_companycategory',
+      'entity_type' => 'node',
+      'label' => 'Company Category',
+      'bundle' => 'company',
+      'required' => false,
+      'widget' => array(
+        'type' => 'options_select'
+      ),
+      'display' => array(
+        'teaser' => array('type' => 'hidden')
+      )
+    );
+    field_create_instance($instance);
+  }
   
   // Create the location vocabulary if it does not exist.
   $vocabulary = taxonomy_vocabulary_load(variable_get('job_vocabulary_companylocation', 0));  
@@ -135,25 +160,35 @@ function job_enable() {
     $vocabulary = (object) $edit;
     taxonomy_vocabulary_save($vocabulary);
     variable_set('job_vocabulary_companylocation', $vocabulary->vid);
-  } 
-  
-  // Add suggested locations to vocabulary.
-  /*
-  $location = array('Central District', 'Eastern', 'Southern', 'Wan Chai', 'Western', 'Kowloon City', 'Kwun Tong', 'Sham Shui Po', 
-    'Wong Tai Sin', 'Yau Tsim Mong', 'Kwai Tsing', 'Northern', 'Sai Kung', 'Shatin', 'Tuen Mun', 'Tai Po', 'Tsuen Wan', 'Yuen Long', 
-    'Lautau Island', 'Other Islands', 'Macao', 'China');  
-  foreach ($location as $name) {
-    $edit = array(
-      'name' => t($name),
-      'description' => '',
-      'parent' => array(0),
-      'vid' => $vocabulary->vid,
+    $field = array(
+      'field_name' => 'field_companylocation',
+      'type' => 'taxonomy_term_reference',
+      'settings' => array(
+        'allowed_values' => array(
+          array(
+            'vocabulary' => $vocabulary->machine_name,
+            'parent' => 0
+          ),
+        ),
+      ),
     );
-    $term = (object) $edit;
-    taxonomy_term_save($term);
+    field_create_field($field);
+    $instance = array(
+      'field_name' => 'field_companylocation',
+      'entity_type' => 'node',
+      'label' => 'Company Location',
+      'bundle' => 'company',
+      'required' => false,
+      'widget' => array(
+        'type' => 'options_select'
+      ),
+      'display' => array(
+        'teaser' => array('type' => 'hidden')
+      )
+    );
+    field_create_instance($instance);
   }
-  */
-
+  
   // Create the job type vocabulary if it does not exist.
   $vocabulary = taxonomy_vocabulary_load(variable_get('job_vocabulary_jobtype', 0));  
   if (!$vocabulary) {
@@ -168,19 +203,46 @@ function job_enable() {
     $vocabulary = (object) $edit;
     taxonomy_vocabulary_save($vocabulary);
     variable_set('job_vocabulary_jobtype', $vocabulary->vid);
-  } 
-  
-  // Add Permanent, Part Time, Contract to this vocabulary.
-  $type = array('Permanent','Part Time','Contract');
-  foreach ($type as $name) {
-    $edit = array(
-      'name' => t($name),
-      'description' => '',
-      'parent' => array(0),
-      'vid' => $vocabulary->vid,
+    $field = array(
+      'field_name' => 'field_jobtype',
+      'type' => 'taxonomy_term_reference',
+      'settings' => array(
+        'allowed_values' => array(
+          array(
+            'vocabulary' => $vocabulary->machine_name,
+            'parent' => 0
+          ),
+        ),
+      ),
     );
-    $term = (object) $edit;
-    taxonomy_term_save($term);    
+    field_create_field($field);
+    $instance = array(
+      'field_name' => 'field_jobtype',
+      'entity_type' => 'node',
+      'label' => 'Job Type',
+      'bundle' => 'job',
+      'required' => false,
+      'widget' => array(
+        'type' => 'options_select'
+      ),
+      'display' => array(
+        'default' => array('type' => 'inline'),
+        'teaser' => array('type' => 'hidden')
+      )
+    );
+    field_create_instance($instance);
+    // Add Permanent, Part Time, Contract to this vocabulary.
+    $type = array('Permanent','Part Time','Contract');
+    foreach ($type as $name) {
+      $edit = array(
+        'name' => t($name),
+        'description' => '',
+        'parent' => array(0),
+        'vid' => $vocabulary->vid,
+      );
+      $term = (object) $edit;
+      taxonomy_term_save($term);    
+    }
   }
 
   // Create the job category vocabulary if it does not exist.
@@ -197,30 +259,52 @@ function job_enable() {
     $vocabulary = (object) $edit;
     taxonomy_vocabulary_save($vocabulary);
     variable_set('job_vocabulary_jobcategory', $vocabulary->vid);
-  } 
-  
-  // Add suggested job category to this vocabulary.
-  /*
-  $category = array('Accounting', 'Admin & Secretarial', 'Banking & Finance', 'Building & Architectural', 'Business Development', 'Catering', 
-    'Customer Service', 'Design', 'Education', 'Engineering', 'Hotel & Tourism', 'Health & Beauty Care', 'Human Resources', 
-    'Information Technology', 'Insurance', 'Legal & Company Secretary', 'Logistics', 'Manufacturing', 'Marketing & Public Relations', 
-    'Media', 'Medical & Pharmaceutical', 'Merchandising', 'Property & Real Estate', 'Purchasing', 'Sales', 'Translation', 
-    'Transportation & Shipping', 'Others');
-  foreach ($type as $name) {
-    $edit = array(
-      'name' => t($name),
-      'description' => '',
-      'parent' => array(0),
-      'vid' => $vocabulary->vid,
+    $field = array(
+      'field_name' => 'field_jobcategory',
+      'type' => 'taxonomy_term_reference',
+      'settings' => array(
+        'allowed_values' => array(
+          array(
+            'vocabulary' => $vocabulary->machine_name,
+            'parent' => 0
+          ),
+        ),
+      ),
     );
-    $term = (object) $edit;
-    taxonomy_term_save($term);    
+    field_create_field($field);
+    $instance = array(
+      'field_name' => 'field_jobcategory',
+      'entity_type' => 'node',
+      'label' => 'Job Category',
+      'bundle' => 'job',
+      'required' => true,
+      'widget' => array(
+        'type' => 'options_select'
+      ),
+      'display' => array(
+        'teaser' => array('type' => 'hidden')
+      )
+    );
+    field_create_instance($instance);
+    // Add suggested job category to this vocabulary.
+    $category = array('Accounting', 'Admin & Secretarial', 'Banking & Finance', 'Building & Architectural', 'Business Development', 'Catering', 
+      'Customer Service', 'Design', 'Education', 'Engineering', 'Hotel & Tourism', 'Health & Beauty Care', 'Human Resources', 
+      'Information Technology', 'Insurance', 'Legal & Company Secretary', 'Logistics', 'Manufacturing', 'Marketing & Public Relations', 
+      'Media', 'Medical & Pharmaceutical', 'Merchandising', 'Property & Real Estate', 'Purchasing', 'Sales', 'Translation', 
+      'Transportation & Shipping', 'Others');
+    foreach ($category as $name) {
+      $edit = array(
+        'name' => t($name),
+        'description' => '',
+        'parent' => array(0),
+        'vid' => $vocabulary->vid,
+      );
+      $term = (object) $edit;
+      taxonomy_term_save($term);    
+    }
   }
-  */
 
-  // Ensure the forum node type is available.
   node_types_rebuild();
   $types = node_type_get_types();
-  //node_add_body_field($types['job']);  
 }
 
