@@ -7,9 +7,10 @@
  */
 
 function job_location_hk_install() {
+  // Create the location vocabulary if it does not exist.
   $vocabulary = taxonomy_vocabulary_load(variable_get('job_vocabulary_companylocation', 0));
-  if (!$vocabulary) {
-    // Add suggested locations to vocabulary.
+  // Add suggested locations to vocabulary.
+  if ($vocabulary) {
     $location = array('Central District', 'Eastern', 'Southern', 'Wan Chai', 'Western', 'Kowloon City', 'Kwun Tong', 'Sham Shui Po',
       'Wong Tai Sin', 'Yau Tsim Mong', 'Kwai Tsing', 'Northern', 'Sai Kung', 'Shatin', 'Tuen Mun', 'Tai Po', 'Tsuen Wan', 'Yuen Long',
       'Lautau Island', 'Other Islands', 'Macao', 'China');

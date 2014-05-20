@@ -199,7 +199,6 @@ function job_node_info() {
 
 function job_form($node, &$form_state) {
   $type = node_type_get_type($node);
-  var_dump($type);
   $form = array();
   switch ($type->orig_type) {
     case 'job':
@@ -528,26 +527,27 @@ function _job_list_category($cid = 0) {
   return $additions;
 }
 
+function job_user_view($account, $view_mode) {
+  $list = _company_list($account);
+  $output = "<div class='company_list'><h3>List of Companies</h3><table>\n";
+  $output .= "<tr><th>Company Name</th></tr>\n";
+  $i = 0;
+  while ($company = $list->fetchObject()) {  
+    $output .= t("  <tr class='@class'><td><a href='@url'>@name</a></td></tr>\n", array('@class' => (++$i % 2 ? 'odd' : 'even'), '@name' => $company->title, '@url' => url('node/'.$company->nid)));
+  }
+  $output .= "</table></div>\n";
+  print $output;
+  $account->content['company']['output'] = array(
+    '#type' => 'markup',
+    '#value' => $output,
+    '#weight' => 10,
+  );
+  var_dump($account);
+}
+
 /****** OLD CODE ******/
 
 /*
-function jobad_user($op, $edit, &$account) {
-  switch ($op) {
-    case 'view':
-      $list = _company_list($account);
-      $account->content[company]['#value']="<div class='company_list'><h3>List of Companies</h3><table>\n";
-      $account->content[company]['#value'].="  <tr><th>Company Name</th></tr>\n";
-      while ($company = db_fetch_object($list)) {
-        $account->content[company]['#value'] .= t("  <tr class='@class'><td><a href='@url'>@name</a></td></tr>\n", array('@class' => (++$i % 2 ? 'odd' : 'even'), '@name' => $company->title, '@url' => url('node/'.$company->nid))); 
-      }
-      $account->content[company]['#value'] .= "</table></div>\n";
-      $account->content[company]['#title'] = 'List of Companies'; 
-      //$account->content[company]['#type'] = 'user_company_info'; 
-      $account->content[company]['#weight'] = 10; 
-      break;
-  }  
-}
-
 function jobad_access($op, $node, $account) {
   $type = node_get_types('type', $node);
   switch ($type->orig_type) {
