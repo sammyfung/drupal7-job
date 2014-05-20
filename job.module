@@ -316,10 +316,13 @@ function job_insert($node) {
       ->fields(array(
         'nid' => $node->nid,
         'vid' => $node->vid,
-        'requirement' => $node->requirement,
+        'requirement' => $node->requirement['value'],
         'company' => $node->company,
-        'application' => $node->application,
-        'description' => $node->description,
+        'application' => $node->application['value'],
+        'description' => $node->description['value'],
+        'requirement_format' => $node->requirement['format'],
+        'application_format' => $node->application['format'],
+        'description_format' => $node->description['format'],
       ))
       ->execute();
       break;
@@ -328,7 +331,8 @@ function job_insert($node) {
       ->fields(array(
         'nid' => $node->nid,
         'vid' => $node->vid,
-        'description' => $node->description,
+        'description' => $node->description['value'],
+        'description_format' => $node->description['format'],
         'phone' => $node->phone,
         'fax' => $node->fax,
         'email' => $node->email,
@@ -347,9 +351,12 @@ function job_update($node) {
       $num_of_row = db_update('job')
       ->fields(array(
         'company' => $node->company,
-        'requirement' => $node->requirement,
-        'application' => $node->application,
-        'description' => $node->description,
+        'requirement' => $node->requirement['value'],
+        'application' => $node->application['value'],
+        'description' => $node->description['value'],
+        'requirement_format' => $node->requirement['format'],
+        'application_format' => $node->application['format'],
+        'description_format' => $node->description['format'],
       ))
       ->condition('nid',$node->nid,'=')
       ->execute();
@@ -357,12 +364,13 @@ function job_update($node) {
     case 'company':
       $num_of_row = db_update('company')
       ->fields(array(
-        'description' => $node->description,
+        'description' => $node->description['value'],
         'phone' => $node->phone,
         'fax' => $node->fax,
         'email' => $node->email,
         'website' => $node->website,
         'person' => $node->person,
+        'description_format' => $node->description['format'],
       ))
       ->condition('nid',$node->nid,'=')
       ->execute();
