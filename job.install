@@ -15,6 +15,12 @@ function job_schema() {
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE),
+      'vid' => array(
+        'description' => t('The current {node_revisions}.vid version identifier.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0),
       'description' => array(
         'description' => t('Description of Company.'),
         'type' => 'text',
@@ -55,6 +61,10 @@ function job_schema() {
       'phone' => array('phone'),
       'fax' => array('fax'),
       ),
+    'unique keys' => array(
+      'nid_vid' => array('nid', 'vid'),
+      'vid'     => array('vid')
+      ),
     'primary key' => array('nid'),
   );  
   $schema['job'] = array(
@@ -65,6 +75,12 @@ function job_schema() {
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE),
+      'vid' => array(
+        'description' => t('The current {node_revisions}.vid version identifier.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0),
       'company' => array(
         'description' => t('Company ID.'),
         'type' => 'int',
@@ -87,6 +103,10 @@ function job_schema() {
       ),
     'indexes' => array(
       'company' => array('company'),
+      ),
+    'unique keys' => array(
+      'nid_vid' => array('nid', 'vid'),
+      'vid'     => array('vid')
       ),
     'primary key' => array('nid'),
   );  
