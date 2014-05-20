@@ -53,7 +53,7 @@ function job_block_view($delta = '') {
             'data' => l($node->$title, 'node/' . $node->nid),
           );
         }
-        if (empty(items)) {
+        if (empty($items)) {
           $block['content'] = t('No job posts available.');
         }
         else {
