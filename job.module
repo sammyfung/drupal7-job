@@ -224,21 +224,24 @@ function job_form($node, &$form_state) {
         '#weight' => -5
       );  
       $form['description'] = array(
-        '#type' => 'textarea',
+        '#type' => 'text_format',
+        '#format' => 'filtered_html',
         '#title' => t('Job Description'),
         '#default_value' => isset($node->description) ? $node->description : '',
         '#required' => FALSE
       );
       // Job Requirement
       $form['requirement'] = array(
-        '#type' => 'textarea',
+        '#type' => 'text_format',
+        '#format' => 'filtered_html',
         '#title' => t('Job Requirement'),
         '#rows' => 20,
         '#default_value' => isset($node->requirement) ? $node->requirement : '',
         '#required' => TRUE,
       );
       $form['application'] = array(
-        '#type' => 'textarea',
+        '#type' => 'text_format',
+        '#format' => 'filtered_html',
         '#title' => t('Job Application'),
         '#default_value' => isset($node->application) ? $node->application : '',
         '#required' => FALSE  
@@ -255,7 +258,8 @@ function job_form($node, &$form_state) {
         );
       }
       $form['description'] = array(
-        '#type' => 'textarea',
+        '#type' => 'text_format',
+        '#format' => 'filtered_html',
         '#title' => t('Company description'),
         '#default_value' => isset($node->description) ? $node->description : '',
         '#required' => FALSE
