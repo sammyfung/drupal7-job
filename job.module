@@ -90,13 +90,19 @@ function job_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
   $items['job/category/%'] = array(
-//    'title' => 'List of Job Posts in Category',
     'description' => 'List of Job Post',
     'page callback' => 'job_list_job_page',
     'page arguments' => array(2),
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
   );
+  $items['job/category/%/feed'] = array(
+    'description' => 'List of Job Post in feed',
+    'page callback' => 'job_list_job_feed',
+    'page arguments' => array(2),
+    'access arguments' => array('access content'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );  
   /*
   $items['jobad/%'] = array(
     'title' => 'Job Ad',
@@ -106,22 +112,6 @@ function job_menu() {
     'access arguments' => array('access content'),
     'type' => MENU_SUGGESTED_ITEM,
   );
-  $items['jobad/category/%'] = array(
-    'title' => 'List of Job Ad in Category '.array(2),
-    'description' => 'List of Job Ad',
-    'page callback' => 'jobad_list_job',
-    'page arguments' => array(2),
-    'access arguments' => array('access content'),
-    'type' => MENU_SUGGESTED_ITEM,
-  );
-  $items['jobad/category/%/feed'] = array(
-    'title' => 'RSS: List of Job Ad in Category '.array(2),
-    'description' => 'List of Job Ad',
-    'page callback' => 'jobad_list_job',
-    'page arguments' => array(2,3),
-    'access arguments' => array('access content'),
-    'type' => MENU_SUGGESTED_ITEM,
-  );  
   */
   return $items;
 }
@@ -555,18 +545,11 @@ function job_user_view($account, $view_mode) {
   var_dump($account);
 }
 
-function job_list_job_page($cids) {
-  $categoryname = _job_list_category($cids)->fetchObject()->name;
-  drupal_set_title(t('Job Posts in !name', array('!name' => $categoryname)));
-  $breadcrumb = drupal_get_breadcrumb();
-  drupal_set_breadcrumb(array_merge($breadcrumb, array(t("<a href='!url'>!name</a>", array('!url' => url('job/category/'.$cids), '!name' => $categoryname)))));
-
-  $output = t('<div>Job Posts in Category !name</div>', array('!name' => $categoryname));
-
+function _job_list($cids) {
   $order = 'n.sticky DESC, n.created DESC';
   $joins = ' INNER JOIN {job} j ON n.vid = j.vid';
   $args = array();
-  $output = "<div class='job'>";  
+  $output = "<div class='job'>";
   //foreach ($category['tids'] as $index => $cid) {
   $index = 0;
     $joins .= ' INNER JOIN {field_revision_field_jobcategory} tn'. $index .' ON n.vid = tn'. $index .'.revision_id';
@@ -578,7 +561,16 @@ function job_list_job_page($cids) {
   $args = array(':cid' => $cids);
   $list = db_query($sql, $args);
   //$list = pager_query($sql, variable_get('default_nodes_main', 10), 0, $sql_count, $args);
+  return $list;
+}
 
+function job_list_job_page($cids) {
+  $categoryname = _job_list_category($cids)->fetchObject()->name;
+  drupal_set_title(t('Job Posts in !name', array('!name' => $categoryname)));
+  $breadcrumb = drupal_get_breadcrumb();
+  drupal_set_breadcrumb(array_merge($breadcrumb, array(t("<a href='!url'>!name</a>", array('!url' => url('job/category/'.$cids), '!name' => $categoryname)))));
+  $output = '<div>';
+  $list = _job_list($cids);
   $has_rows = FALSE;
   $i = 0;
   while ($job = $list->fetchObject()) {
@@ -603,9 +595,20 @@ function job_list_job_page($cids) {
     $output .= '<p>'. t('There are currently no jobs in this category.') .'</p>';
     }
   $output .= '</div>';
-  drupal_add_feed(url('jobad/category/'. $cids .'/feed'), 'RSS - '. $categoryname);
-
+  drupal_add_feed('job/category/'. $cids .'/feed', 'RSS - '. $categoryname);
   return $output;
+}
+
+function job_list_job_feed($cids) {
+  $categoryname = _job_list_category($cids)->fetchObject()->name;
+  $list = _job_list($cids);
+  $channel['link'] = url('job/category/'. $cids .'/', array('absolute' => TRUE));
+  $channel['title'] = variable_get('site_name', 'Drupal') .' - '. t('Job Posts in !cat', array('!cat' => $categoryname));
+  $items = array();
+  while ($job = $list->fetchObject()) {
+    $items[] = $job->nid;
+  }
+  node_feed($items, $channel);
 }
 
 /****** OLD CODE ******/
@@ -670,68 +673,6 @@ function jobad_access($op, $node, $account) {
   //$form['options']['promote']['#default_value'] = 0;
   //$form['workflow']['node_options']['#default_value'] = array();
 //}
-
-function jobad_list_job($cids, $op = 'page') {
-  $category = taxonomy_terms_parse_string($cids);
-  $categoryname = db_fetch_object(jobad_list_category($category['tids'][0]))->name;
-  drupal_set_title(t('Job Listing in !cat', array('!cat' => $categoryname)));
-  $breadcrumb = drupal_get_breadcrumb();
-  drupal_set_breadcrumb(array_merge($breadcrumb, array(t("<a href='!url'>!name</a>", array('!url' => url('jobad/category/'.$cids), '!name' => $categoryname)))));
-  
-  $order = 'n.sticky DESC, n.created DESC';
-  $joins = ' INNER JOIN {jobad} j ON n.vid = j.vid';
-  $args = array();
-  $output = "<div class='jobad'>";  
-  foreach ($category['tids'] as $index => $cid) {
-    $joins .= ' INNER JOIN {term_node} tn'. $index .' ON n.vid = tn'. $index .'.vid';
-    $wheres .= ' AND tn'. $index .'.tid IN ('. db_placeholders($cid, 'int') .')';
-    $args = array_merge($args, array($cid));
-  }
-  $sql = 'SELECT DISTINCT(n.nid), n.sticky, n.title, n.created, j.company FROM {node} n '. $joins ." WHERE n.status = 1 AND n.type = 'jobad' ". $wheres .' ORDER BY '. $order;
-  $sql_count = 'SELECT COUNT(DISTINCT(n.nid)) FROM {node} n '. $joins .' WHERE n.status = 1 '. $wheres;
-  //$list = db_query($sql, $args);
-  $list = pager_query($sql, variable_get('default_nodes_main', 10), 0, $sql_count, $args);
-  switch ($op) {
-    case 'page':
-      $has_rows = FALSE;
-      while ($job = db_fetch_object($list)) {
-        if ($has_rows == FALSE) {
-          $output .= "<table>\n<tr><th>Date</th><th>Title</th><th>Company</th></tr>\n";      
-          $has_rows = TRUE;      
-        }
-        $postdate = format_date($job->created, 'custom', 'd/m/y');
-        if ($job->company>0) {
-          //$company = db_fetch_object(_company_bynid($job->company));
-          $company = _company_bynid($job->company);
-          $company = t("<a href='!url'>!name</a>", array('!url' => url('node/'.$job->company), '!name' => $company->title));
-        } else {
-          $company = '-';
-        }
-        $output .= t("  <tr class='@class'><td>!date</td><td><a href='!nid'>!title</a></td><td>!company</td></tr>\n", array('@class' => (++$i % 2 ? 'odd' : 'even'), '!date' => $postdate,'!nid' => url('node/'.$job->nid), '!title' => $job->title, '!company' => $company));
-      }
-      if ($has_rows == TRUE) {
-        $output .= '</table>';
-        $output .= theme('pager');
-      } else {
-        $output .= '<p>'. t('There are currently no jobs in this category.') .'</p>';
-      }
-      $output .= '</div>';
-      drupal_add_feed(url('jobad/category/'. $cids .'/feed'), 'RSS - '. $categoryname);
-      return $output;
-      break;
-    case 'feed':
-      $channel['link'] = url('job/category/'. $cids .'/', array('absolute' => TRUE));
-      $channel['title'] = variable_get('site_name', 'Drupal') .' - '. t('Job Listing in !cat', array('!cat' => $categoryname));
-      $items = array();
-      while ($job = db_fetch_object($list)) {
-        $items[] = $job->nid;
-      }
-      node_feed($items, $channel);
-      break;
-    default;
-      drupal_not_found();
-  }
-}
 
 function jobad_link_alter(&$links, $node) {
   if ($node->type == 'jobad') {
