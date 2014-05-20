@@ -160,6 +160,7 @@ function job_enable() {
         'type' => 'options_select'
       ),
       'display' => array(
+        'default' => array('label' => 'inline'),
         'teaser' => array('type' => 'hidden')
       )
     );
@@ -203,6 +204,7 @@ function job_enable() {
         'type' => 'options_select'
       ),
       'display' => array(
+        'default' => array('label' => 'inline'),
         'teaser' => array('type' => 'hidden')
       )
     );
@@ -246,7 +248,7 @@ function job_enable() {
         'type' => 'options_select'
       ),
       'display' => array(
-        'default' => array('type' => 'inline'),
+        'default' => array('label' => 'inline'),
         'teaser' => array('type' => 'hidden')
       )
     );
@@ -302,6 +304,7 @@ function job_enable() {
         'type' => 'options_select'
       ),
       'display' => array(
+        'default' => array('label' => 'inline'),
         'teaser' => array('type' => 'hidden')
       )
     );

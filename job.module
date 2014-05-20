@@ -45,7 +45,7 @@ function job_block_view($delta = '') {
   switch ($delta) {
     case 'job_latest':
       $block['subject'] = t('Latest Jobs');
-      if (user_access('access content')) {
+      if (user_access('access job content')) {
         $result = job_latest_post('block');
         $items = array();
         foreach ($result as $node) {
@@ -83,7 +83,7 @@ function job_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
   $items['job'] = array(
-    'title' => 'Job Categories',
+    'title' => 'Job Board',
     'description' => 'List of Job Categories',
     'page callback' => 'job_list_category_page',
     'access arguments' => array('access job content'),
@@ -93,14 +93,14 @@ function job_menu() {
     'description' => 'List of Job Post',
     'page callback' => 'job_list_job_page',
     'page arguments' => array(2),
-    'access arguments' => array('access content'),
+    'access arguments' => array('access job content'),
     'type' => MENU_SUGGESTED_ITEM,
   );
   $items['job/category/%/feed'] = array(
     'description' => 'List of Job Post in feed',
     'page callback' => 'job_list_job_feed',
     'page arguments' => array(2),
-    'access arguments' => array('access content'),
+    'access arguments' => array('access job content'),
     'type' => MENU_SUGGESTED_ITEM,
   );  
   /*
@@ -145,8 +145,8 @@ function job_permission() {
       'title' => t('Administer the job board module'),
     ),
     'access job content' => array(
-      'title' => t('Access content for the job board module'),
-    )
+      'title' => t('Access job posts'),
+    ),
   );
 }
 
@@ -212,7 +212,6 @@ function job_form($node, &$form_state) {
       );
       // Getting user's company.
       $list = _company_list($node);
-      //while ($company = db_fetch_object($list)) {
       for ($i=0;$i<$list->rowCount();$i++) {
         $company = $list->FetchObject();
         $form['company']['#options'][$company->nid] = $company->title;
@@ -231,8 +230,6 @@ function job_form($node, &$form_state) {
         '#required' => FALSE
       );
       // Job Requirement
-      //$form['body_field']['body'] = node_body_field($node, $type->body_label, $type->min_word_count);
-      //$form['body_field']['body'] = array(
       $form['requirement'] = array(
         '#type' => 'textarea',
         '#title' => t('Job Requirement'),
@@ -246,7 +243,6 @@ function job_form($node, &$form_state) {
         '#default_value' => isset($node->application) ? $node->application : '',
         '#required' => FALSE  
       );
-      //$form['body_filter']['filter'] = filter_form($node->format);
       break;
     case 'company':
       if ($type->has_title) {
@@ -296,9 +292,6 @@ function job_form($node, &$form_state) {
       );
       break;
   }
-  //$form['options']['status']['#default_value'] = 0;
-  $form['options']['promote']['#default_value'] = 0;
-  //$form['workflow']['node_options']['#default_value'] = array();
   return $form;
 }
 
@@ -318,6 +311,7 @@ function job_insert($node) {
       $nid = db_insert('job')
       ->fields(array(
         'nid' => $node->nid,
+        'vid' => $node->vid,
         'requirement' => $node->requirement,
         'company' => $node->company,
         'application' => $node->application,
@@ -329,6 +323,7 @@ function job_insert($node) {
       $nid = db_insert('company')
       ->fields(array(
         'nid' => $node->nid,
+        'vid' => $node->vid,
         'description' => $node->description,
         'phone' => $node->phone,
         'fax' => $node->fax,
@@ -378,7 +373,7 @@ function job_load($nodes) {
       case 'job':
         $result = db_select('job','a')
           ->fields('a')
-          ->condition('nid',$node->nid,'=')
+          ->condition('vid',$node->vid,'=')
           ->execute()
           ->fetchObject();
         $nodes[$result->nid]->company = $result->company;
@@ -389,7 +384,7 @@ function job_load($nodes) {
       case 'company':
         $result = db_select('company','c')
           ->fields('c')
-          ->condition('nid',$node->nid,'=')
+          ->condition('vid',$node->vid,'=')
           ->execute()
           ->fetchObject();
         $nodes[$result->nid]->description = $result->description;
@@ -436,7 +431,7 @@ function job_node_view($node, $view_mode, $langcode) {
         }
         if ($node->description != '') {
           $node->content['description'] = array(
-            '#markup' => t('<div><strong>Company Description</strong></div><div>!description</div>', array('!description' => $node->description)),
+            '#markup' => t('<div><strong>Job Description</strong></div><div>!description</div>', array('!description' => $node->description)),
             '#weight' => -5,
           );    
         }
@@ -447,7 +442,8 @@ function job_node_view($node, $view_mode, $langcode) {
           );
         }
         $breadcrumb = drupal_get_breadcrumb();
-        drupal_set_breadcrumb(array_merge($breadcrumb, array($node->title)));
+        $jobcategory = $node->field_jobcategory["und"][0]["taxonomy_term"];
+        drupal_set_breadcrumb(array_merge($breadcrumb, array(t("<a href='!url'>Job Board</a>", array('!url' => url('job')))), array(t("<a href='!url'>!name</a>", array('!name' => $jobcategory->name, '!url' => url('job/category/'.$jobcategory->tid)))) , array($node->title)));
       }
       break;
     case 'company':
@@ -489,7 +485,7 @@ function job_node_view($node, $view_mode, $langcode) {
           );
         }
         $breadcrumb = drupal_get_breadcrumb();
-        drupal_set_breadcrumb(array_merge($breadcrumb, array($node->title)));
+        drupal_set_breadcrumb(array_merge($breadcrumb, array(t("<a href='!url'>Job Board</a>", array('!url' => url('job'))), t('Company'),$node->title)));
       }
       break;
   }
@@ -506,13 +502,12 @@ function _company_bynid($nid) {
 }
 
 function job_list_category_page() {
-  drupal_set_title(t('List of Job Categories'));
+  drupal_set_title(t('Job Board'));
   $breadcrumb = drupal_get_breadcrumb();
-  drupal_set_breadcrumb(array_merge($breadcrumb, array(t("<a href='!url'>Job Categories</a>", array('!url' => url('job'))))));
+  drupal_set_breadcrumb(array_merge($breadcrumb, array(t("<a href='!url'>Job Board</a>", array('!url' => url('job'))))));
   $output = "<div class='job'>";
   $list = _job_list_category();
   while ($category = $list->fetchObject()) {
-    //l($category->name,'taxonomy/term/'.$category->tid)
     $output .= t("<div class='job_catagory_!cid'>!category </div>", array('!cid' => $category->tid, '!category' => l($category->name,'job/category/'.$category->tid)));
   }
   $output .= "</div>";
@@ -535,42 +530,44 @@ function job_user_view($account, $view_mode) {
   while ($company = $list->fetchObject()) {  
     $output .= t("  <tr class='@class'><td><a href='@url'>@name</a></td></tr>\n", array('@class' => (++$i % 2 ? 'odd' : 'even'), '@name' => $company->title, '@url' => url('node/'.$company->nid)));
   }
-  $output .= "</table></div>\n";
-  print $output;
-  $account->content['company']['output'] = array(
+  $output .= "</table></div>\n"; 
+  $account->content['company'] = array(
     '#type' => 'markup',
     '#value' => $output,
     '#weight' => 10,
   );
-  var_dump($account);
 }
 
-function _job_list($cids) {
+function _job_list($cids, $num_per_page) {
+  $limit = '';
+  if ($num_per_page > 0) {
+    $page = isset($_GET['page']) ? $_GET['page'] : 0;
+    $start = $num_per_page * $page;
+    $limit = ' LIMIT '. $start . ',' . $num_per_page;
+  }
   $order = 'n.sticky DESC, n.created DESC';
   $joins = ' INNER JOIN {job} j ON n.vid = j.vid';
   $args = array();
   $output = "<div class='job'>";
-  //foreach ($category['tids'] as $index => $cid) {
   $index = 0;
-    $joins .= ' INNER JOIN {field_revision_field_jobcategory} tn'. $index .' ON n.vid = tn'. $index .'.revision_id';
-    $wheres = ' AND tn'. $index .'.field_jobcategory_tid IN (:cid)';
-    $args = array_merge($args, array($cids));
-  //}
-  $sql = 'SELECT DISTINCT(n.nid), n.sticky, n.title, n.created, j.company FROM {node} n '. $joins ." WHERE n.status = 1 AND n.type = 'job' ". $wheres .' ORDER BY '. $order;
-  $sql_count = 'SELECT COUNT(DISTINCT(n.nid)) FROM {node} n '. $joins .' WHERE n.status = 1 '. $wheres;
+  $joins .= ' INNER JOIN {field_revision_field_jobcategory} tn'. $index .' ON n.vid = tn'. $index .'.revision_id';
+  $wheres = ' AND tn'. $index .'.field_jobcategory_tid IN (:cid)';
+  $args = array_merge($args, array($cids));
+  $sql = 'SELECT DISTINCT(n.nid), n.sticky, n.title, n.created, j.company FROM {node} n '. $joins ." WHERE n.status = 1 AND n.type = 'job' ". $wheres .' ORDER BY '. $order . $limit;
   $args = array(':cid' => $cids);
   $list = db_query($sql, $args);
-  //$list = pager_query($sql, variable_get('default_nodes_main', 10), 0, $sql_count, $args);
   return $list;
 }
 
-function job_list_job_page($cids) {
+function job_list_job_page($cids, $page = 0) {
   $categoryname = _job_list_category($cids)->fetchObject()->name;
   drupal_set_title(t('Job Posts in !name', array('!name' => $categoryname)));
   $breadcrumb = drupal_get_breadcrumb();
   drupal_set_breadcrumb(array_merge($breadcrumb, array(t("<a href='!url'>!name</a>", array('!url' => url('job/category/'.$cids), '!name' => $categoryname)))));
   $output = '<div>';
-  $list = _job_list($cids);
+  $total = _job_list($cids, 0)->rowCount();
+  $num_per_page = variable_get('job_num_per_page', 10);
+  $list = _job_list($cids, $num_per_page);
   $has_rows = FALSE;
   $i = 0;
   while ($job = $list->fetchObject()) {
@@ -580,7 +577,6 @@ function job_list_job_page($cids) {
     }
     $postdate = format_date($job->created, 'custom', 'd/m/y');
     if ($job->company>0) {
-      //$company = db_fetch_object(_company_bynid($job->company));
       $company = _company_bynid($job->company);
       $company = t("<a href='!url'>!name</a>", array('!url' => url('node/'.$job->company), '!name' => $company->title));
     } else {
@@ -590,6 +586,7 @@ function job_list_job_page($cids) {
   }
   if ($has_rows == TRUE) {
     $output .= '</table>';
+    pager_default_initialize($total, $num_per_page);
     $output .= theme('pager');
   } else {
     $output .= '<p>'. t('There are currently no jobs in this category.') .'</p>';
@@ -601,7 +598,8 @@ function job_list_job_page($cids) {
 
 function job_list_job_feed($cids) {
   $categoryname = _job_list_category($cids)->fetchObject()->name;
-  $list = _job_list($cids);
+  $num_per_page = variable_get('job_num_per_page', 10);
+  $list = _job_list($cids, $num_per_page);
   $channel['link'] = url('job/category/'. $cids .'/', array('absolute' => TRUE));
   $channel['title'] = variable_get('site_name', 'Drupal') .' - '. t('Job Posts in !cat', array('!cat' => $categoryname));
   $items = array();
@@ -611,91 +609,22 @@ function job_list_job_feed($cids) {
   node_feed($items, $channel);
 }
 
-/****** OLD CODE ******/
-
-/*
-function jobad_access($op, $node, $account) {
-  $type = node_get_types('type', $node);
-  switch ($type->orig_type) {
-    case 'jobad':
-      if ($op == 'create') {
-        // Only users with permission to do so may create this node type.
-        if (user_access('create own job ad', $account) || user_access('administer job ad', $account)) {
-          return TRUE;
-        }
-      }
-    
-      // Users who create a node may edit or delete it later, assuming they have the
-      // necessary permissions.
-      if ($op == 'update' || $op == 'delete') {
-        if ((user_access('edit own job ad', $account) && ($account->uid == $node->uid)) || user_access('administer job ad', $account)) {
-          return TRUE;
-        }
-      }
-      if ($op == 'view') {
-        if (user_access('access job ad', $account) || user_access('administer job ad', $account)) {
-          return TRUE;
-        }
-      }
-      break;
-    case 'company':
-      if ($op == 'view') {
-        return (user_access('access company info'));
-      }
-  
-      if ($op == 'create') {
-        // Only users with permission to do so may create this node type.
-        if (user_access('create multiple company info', $account) || user_access('administer company info', $account)) {
-          return TRUE;
-        }
-        else if (user_access('create single company info', $account)) {
-          // query count number of company created by user
-          $total = db_fetch_object(db_query("SELECT count(*) as c FROM {node} WHERE type='company' and uid = %d", $account->uid));
-          if ($total->c == 0) {
-            return TRUE;
-          }
-        }
-      }
-      
-      // Users who create a node may edit or delete it later, assuming they have the
-      // necessary permissions.
-      if ($op == 'update' || $op == 'delete') {
-        if ((user_access('edit own company info', $account) && ($account->uid == $node->uid)) || user_access('administer company info', $account)) {
-          return TRUE;
-        }
-      }  
-      break;
-  }
-} 
-
-//function jobad_form_alter(&$form, $form_state, $form_id) {
-  //$form['options']['status']['#default_value'] = 0;
-  //$form['options']['promote']['#default_value'] = 0;
-  //$form['workflow']['node_options']['#default_value'] = array();
-//}
-
-function jobad_link_alter(&$links, $node) {
-  if ($node->type == 'jobad') {
-    $cid = 0;
-    // Update job category link
-    foreach ($links as $index => $link) {
-      // Update link if it is a taxonomy term of job category
-      if ($category = preg_replace('/^taxonomy_term_/', '', $index)) {
-        if (variable_get('jobad_category_vocabulary', 0) == db_fetch_object(jobad_list_category((int)$category))->vid) {
-          $links[$index]['href'] = preg_replace('/^taxonomy\/term/', 'jobad/category',$links[$index]['href']);
-          $cid = $category;
-        }
-      }
-    }
-    // Update other jobad links
-    foreach ($links as $index => $link) {
-      if ($category = preg_replace('/^taxonomy_term_/', '', $index)) {
-        if ($category != $cid) {
-          $links[$index]['href'] = preg_replace('/^taxonomy\/term\//', 'jobad/category/' . $cid . ',', $links[$index]['href']);
-        }
-      }
-    }
+function job_node_view_alter(&$build) {
+  if ($build["#bundle"] == 'job') {
+    $build['field_jobcategory'][0]['#href'] = preg_replace('/^taxonomy\/term\//', 'job/category/',$build['field_jobcategory'][0]['#href']);
+    $build['field_jobcategory']['#weight'] = 30;
+    $build['field_jobtype']['#weight'] = 31;
   }
 }
 
-*/
+function job_form_alter(&$form, &$form_state, $form_id) {
+  if (array_key_exists('type', $form)) {
+    if ($form['type']['#value'] == 'job') {
+      $form['field_jobcategory']['#weight'] = 0;
+      $form['field_jobtype']['#weight'] = 0;
+    } else if ($form['type']['#value'] == 'company') {
+      $form['field_companycategory']['#weight'] = 0;
+      $form['field_companylocation']['#weight'] = 0;
+    }
+  }
+}
