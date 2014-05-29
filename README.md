@@ -5,7 +5,7 @@ Job Board module for Drupal 7 Content Management System
 
 ![drupal7-job screenshot](https://github.com/sammyfung/drupal7-job/raw/master/image/drupal7-job-01.png "Job Board module for Drupal 7 CMS")
 
-It is now serving the (http://job.opensource.hk/ "job board of OpenSource.HK").   
+It is now serving the [job board of OpenSource.HK](http://job.opensource.hk/).   
 
 Author: Sammy Fung (sammy@sammy.hk)   
 
