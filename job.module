@@ -46,11 +46,11 @@ function job_block_view($delta = '') {
     case 'job_latest':
       $block['subject'] = t('Latest Jobs');
       if (user_access('access job content')) {
-        $result = job_latest_post('block');
+        $result = job_latest_posts('block');
         $items = array();
         foreach ($result as $node) {
           $items[] = array(
-            'data' => l($node->$title, 'node/' . $node->nid),
+            'data' => l($node->title, 'node/' . $node->nid),
           );
         }
         if (empty($items)) {
