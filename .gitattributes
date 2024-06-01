@@ -1,0 +1,3 @@
+*.info linguist-detectable
+*.install linguist-detectable
+*.module linguist-detectable
