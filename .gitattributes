@@ -1,3 +1,3 @@
-*.info linguist-detectable
-*.install linguist-detectable
-*.module linguist-detectable
+*.info linguist-language=php
+*.install linguist-language=php
+*.module linguist-language=php
